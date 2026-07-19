@@ -1,0 +1,87 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: expense-tracker-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - expense_tracker_pgdata:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - expense-tracker-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: expense-tracker-backend
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    environment:
+      SPRING_PROFILES_ACTIVE: release
+      DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      DB_USERNAME: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/firebase-service-account.json
+
+    volumes:
+      - ./secrets/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    networks:
+      - expense-tracker-network
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: expense-tracker-caddy
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+    depends_on:
+      - backend
+
+    networks:
+      - expense-tracker-network
+
+volumes:
+  expense_tracker_pgdata:
+  caddy_data:
+  caddy_config:
+
+networks:
+  expense-tracker-network:

@@ -1,0 +1,11 @@
+.gradle
+build
+out
+.idea
+.vscode
+.kotlin
+.git
+.env
+secrets
+*.iml
+*.log
