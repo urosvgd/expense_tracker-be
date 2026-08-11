@@ -85,7 +85,7 @@ class SecurityConfig(
                     "/api/auth/logout"
                 ).permitAll()
 
-                it.requestMatchers("/error").permitAll()
+                it.requestMatchers("/error", "/privacy").permitAll()
 
                 /*
                  * Privremeno ostavljamo postojeće API-je javnim dok
