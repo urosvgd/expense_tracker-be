@@ -1,6 +1,7 @@
 package com.example.expensetracker.recurring.dto
 
 import com.example.expensetracker.recurring.entity.RecurrenceFrequency
+import com.example.expensetracker.recurring.validation.ValidRecurringExpenseDates
 import jakarta.validation.constraints.DecimalMin
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
@@ -10,6 +11,7 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.UUID
 
+@ValidRecurringExpenseDates
 data class RecurringExpenseRequest(
 
     @field:NotBlank(
