@@ -4,7 +4,6 @@ import jakarta.validation.constraints.DecimalMin
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import java.math.BigDecimal
-import java.util.UUID
 
 data class ReceiptItemRequest(
 
@@ -38,5 +37,9 @@ data class ReceiptItemRequest(
     )
     val totalPrice: BigDecimal,
 
-    val categoryId: UUID? = null
+    @field:Size(
+        max = 100,
+        message = "Item category must not exceed 100 characters"
+    )
+    val category: String? = null
 )

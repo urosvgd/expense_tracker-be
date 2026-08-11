@@ -347,6 +347,60 @@ class CategoryServiceTest {
         }
     }
 
+    @Test
+    fun `findActiveCategoryByName trims and matches case-insensitively`() {
+        val category = category(
+            code = "BILLS",
+            name = "Bills",
+            type = CategoryType.EXPENSE
+        )
+
+        every {
+            categoryRepository.findByNameIgnoreCaseAndTypeAndActiveTrue(
+                name = "bills",
+                type = CategoryType.EXPENSE
+            )
+        } returns category
+
+        val result = categoryService.findActiveCategoryByName(
+            name = "  bills  ",
+            expectedType = CategoryType.EXPENSE
+        )
+
+        assertSame(category, result)
+
+        verify(exactly = 1) {
+            categoryRepository.findByNameIgnoreCaseAndTypeAndActiveTrue(
+                name = "bills",
+                type = CategoryType.EXPENSE
+            )
+        }
+    }
+
+    @Test
+    fun `findActiveCategoryByName returns null when category is not found`() {
+        every {
+            categoryRepository.findByNameIgnoreCaseAndTypeAndActiveTrue(
+                name = "Unknown",
+                type = CategoryType.EXPENSE
+            )
+        } returns null
+
+        val result = categoryService.findActiveCategoryByName(
+            name = "Unknown",
+            expectedType = CategoryType.EXPENSE
+        )
+
+        assertNull(result)
+
+        verify(exactly = 1) {
+            categoryRepository.findByNameIgnoreCaseAndTypeAndActiveTrue(
+                name = "Unknown",
+                type = CategoryType.EXPENSE
+            )
+        }
+    }
+
     private fun category(
         id: UUID = UUID.randomUUID(),
         code: String,

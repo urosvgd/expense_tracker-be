@@ -17,5 +17,6 @@ data class ExpenseResponse(
     val purchaseDate: LocalDateTime,
     val createdAt: LocalDateTime,
     val items: List<ReceiptItemResponse>,
-    val qrUrl: String?
+    val qrUrl: String?,
+    val notes: String?
 )

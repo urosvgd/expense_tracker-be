@@ -7,7 +7,6 @@ import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
 import java.math.BigDecimal
 import java.time.LocalDateTime
-import java.util.UUID
 
 data class ExpenseRequest(
 
@@ -36,7 +35,11 @@ data class ExpenseRequest(
     )
     val currency: String,
 
-    val categoryId: UUID? = null,
+    @field:Size(
+        max = 100,
+        message = "Category must not exceed 100 characters"
+    )
+    val category: String? = null,
 
     val purchaseDate: LocalDateTime,
 
@@ -47,6 +50,12 @@ data class ExpenseRequest(
     val qrUrl: String? = null,
 
     val receiptImage: String? = null,
+
+    @field:Size(
+        max = 2000,
+        message = "Notes must not exceed 2000 characters"
+    )
+    val notes: String? = null,
 
     @field:Valid
     val items: List<ReceiptItemRequest> = emptyList()

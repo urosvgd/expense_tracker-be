@@ -54,6 +54,9 @@ class ExpenseEntity(
     @Column(name = "receipt_image", columnDefinition = "TEXT")
     var receiptImage: String? = null,
 
+    @Column(name = "notes", columnDefinition = "TEXT")
+    var notes: String? = null,
+
     @Column(name = "created_at", nullable = false)
     var createdAt: LocalDateTime = LocalDateTime.now(),
 

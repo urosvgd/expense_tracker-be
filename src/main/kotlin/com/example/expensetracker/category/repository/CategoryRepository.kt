@@ -18,4 +18,9 @@ interface CategoryRepository : JpaRepository<CategoryEntity, UUID> {
         code: String,
         type: CategoryType
     ): CategoryEntity?
+
+    fun findByNameIgnoreCaseAndTypeAndActiveTrue(
+        name: String,
+        type: CategoryType
+    ): CategoryEntity?
 }

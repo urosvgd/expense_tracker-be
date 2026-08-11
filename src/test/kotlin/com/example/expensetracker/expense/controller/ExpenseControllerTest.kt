@@ -206,7 +206,7 @@ class ExpenseControllerTest {
             merchant = "Maxi",
             amount = BigDecimal("300.00"),
             currency = "RSD",
-            categoryId = expenseCategoryId,
+            category = "Groceries",
             purchaseDate = LocalDateTime.of(
                 2026,
                 7,
@@ -222,7 +222,7 @@ class ExpenseControllerTest {
                     quantity = BigDecimal("2.000"),
                     unitPrice = BigDecimal("150.00"),
                     totalPrice = BigDecimal("300.00"),
-                    categoryId = itemCategoryId
+                    category = "Food"
                 )
             )
         )
@@ -265,7 +265,8 @@ class ExpenseControllerTest {
                     )
                 )
             ),
-            qrUrl = "https://example.com/receipt"
+            qrUrl = "https://example.com/receipt",
+            notes = null
         )
 
         whenever(expenseService.create(request))
@@ -333,7 +334,7 @@ class ExpenseControllerTest {
     @Test
     fun `POST expense accepts nullable category and receipt fields`() {
         val request = expenseRequest(
-            categoryId = null,
+            category = null,
             qrUrl = null,
             receiptImage = null
         )
@@ -915,7 +916,7 @@ class ExpenseControllerTest {
         merchant: String = "Test merchant",
         amount: String = "100.00",
         currency: String = "RSD",
-        categoryId: UUID? = null,
+        category: String? = null,
         purchaseDate: LocalDateTime = LocalDateTime.of(
             2026,
             7,
@@ -931,7 +932,7 @@ class ExpenseControllerTest {
             merchant = merchant,
             amount = BigDecimal(amount),
             currency = currency,
-            categoryId = categoryId,
+            category = category,
             purchaseDate = purchaseDate,
             qrUrl = qrUrl,
             receiptImage = receiptImage,
@@ -962,7 +963,8 @@ class ExpenseControllerTest {
             5
         ),
         items: List<ReceiptItemResponse> = emptyList(),
-        qrUrl: String? = null
+        qrUrl: String? = null,
+        notes: String? = null
     ): ExpenseResponse {
         return ExpenseResponse(
             id = id,
@@ -975,7 +977,8 @@ class ExpenseControllerTest {
             purchaseDate = purchaseDate,
             createdAt = createdAt,
             items = items,
-            qrUrl = qrUrl
+            qrUrl = qrUrl,
+            notes = notes
         )
     }
 }

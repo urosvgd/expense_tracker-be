@@ -64,6 +64,17 @@ class CategoryService(
         )
     }
 
+    @Transactional(readOnly = true)
+    fun findActiveCategoryByName(
+        name: String,
+        expectedType: CategoryType
+    ): CategoryEntity? {
+        return categoryRepository.findByNameIgnoreCaseAndTypeAndActiveTrue(
+            name = name.trim(),
+            type = expectedType
+        )
+    }
+
     private fun toResponse(
         entity: CategoryEntity
     ): CategoryResponse {

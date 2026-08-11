@@ -43,7 +43,7 @@ class ExpenseService(
         )
 
         val expenseCategory = resolveExpenseCategory(
-            categoryId = request.categoryId
+            category = request.category
         )
 
         val entity = ExpenseEntity(
@@ -55,7 +55,8 @@ class ExpenseService(
             category = expenseCategory,
             purchaseDate = request.purchaseDate,
             qrUrl = request.qrUrl,
-            receiptImage = request.receiptImage
+            receiptImage = request.receiptImage,
+            notes = request.notes
         )
 
         request.items.forEach { itemRequest ->
@@ -64,7 +65,7 @@ class ExpenseService(
             )
 
             val itemCategory = resolveItemCategory(
-                categoryId = itemRequest.categoryId,
+                category = itemRequest.category,
                 itemName = cleanedItemName
             )
 
@@ -100,7 +101,7 @@ class ExpenseService(
         )
 
         val expenseCategory = resolveExpenseCategory(
-            categoryId = request.categoryId
+            category = request.category
         )
 
         expense.merchant = request.merchant
@@ -111,6 +112,7 @@ class ExpenseService(
         expense.purchaseDate = request.purchaseDate
         expense.receiptImage = request.receiptImage
         expense.qrUrl = request.qrUrl
+        expense.notes = request.notes
 
         val newItems = request.items.map { itemRequest ->
             val cleanedItemName = itemCategoryDetector.cleanItemName(
@@ -118,7 +120,7 @@ class ExpenseService(
             )
 
             val itemCategory = resolveItemCategory(
-                categoryId = itemRequest.categoryId,
+                category = itemRequest.category,
                 itemName = cleanedItemName
             )
 
@@ -180,23 +182,29 @@ class ExpenseService(
     }
 
     private fun resolveExpenseCategory(
-        categoryId: UUID?
+        category: String?
     ): CategoryEntity? {
-        if (categoryId == null) return null
+        if (category.isNullOrBlank()) return null
 
-        return categoryService.requireActiveCategory(
-            categoryId = categoryId,
+        return categoryService.findActiveCategoryByName(
+            name = category,
+            expectedType = CategoryType.EXPENSE
+        ) ?: categoryService.findActiveCategoryByCode(
+            code = "OTHER",
             expectedType = CategoryType.EXPENSE
         )
     }
 
     private fun resolveItemCategory(
-        categoryId: UUID?,
+        category: String?,
         itemName: String
     ): CategoryEntity? {
-        if (categoryId != null) {
-            return categoryService.requireActiveCategory(
-                categoryId = categoryId,
+        if (!category.isNullOrBlank()) {
+            return categoryService.findActiveCategoryByName(
+                name = category,
+                expectedType = CategoryType.ITEM
+            ) ?: categoryService.findActiveCategoryByCode(
+                code = "OTHER",
                 expectedType = CategoryType.ITEM
             )
         }

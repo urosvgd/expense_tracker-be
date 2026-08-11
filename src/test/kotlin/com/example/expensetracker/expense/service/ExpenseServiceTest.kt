@@ -59,7 +59,7 @@ class ExpenseServiceTest {
             merchant = "  Maxi   Novi Sad  ",
             amount = BigDecimal("1250.50"),
             currency = "RSD",
-            categoryId = null,
+            category = null,
             purchaseDate = purchaseDate,
             qrUrl = null,
             receiptImage = null,
@@ -95,7 +95,7 @@ class ExpenseServiceTest {
         }
 
         verify(exactly = 0) {
-            categoryService.requireActiveCategory(any(), any())
+            categoryService.findActiveCategoryByName(any(), any())
         }
 
         verify(exactly = 1) {
@@ -126,7 +126,7 @@ class ExpenseServiceTest {
             merchant = "Maxi",
             amount = BigDecimal("800.00"),
             currency = "RSD",
-            categoryId = categoryId,
+            category = "Groceries",
             purchaseDate = LocalDateTime.of(
                 2026,
                 7,
@@ -137,8 +137,8 @@ class ExpenseServiceTest {
         )
 
         every {
-            categoryService.requireActiveCategory(
-                categoryId = categoryId,
+            categoryService.findActiveCategoryByName(
+                name = "Groceries",
                 expectedType = CategoryType.EXPENSE
             )
         } returns expenseCategory
@@ -160,8 +160,8 @@ class ExpenseServiceTest {
         assertEquals("Groceries", result.category?.name)
 
         verify(exactly = 1) {
-            categoryService.requireActiveCategory(
-                categoryId = categoryId,
+            categoryService.findActiveCategoryByName(
+                name = "Groceries",
                 expectedType = CategoryType.EXPENSE
             )
         }
@@ -254,7 +254,7 @@ class ExpenseServiceTest {
                     quantity = BigDecimal("1.000"),
                     unitPrice = BigDecimal("180.00"),
                     totalPrice = BigDecimal("180.00"),
-                    categoryId = null
+                    category = null
                 )
             )
         )
@@ -314,7 +314,7 @@ class ExpenseServiceTest {
         }
 
         verify(exactly = 0) {
-            categoryService.requireActiveCategory(any(), any())
+            categoryService.findActiveCategoryByName(any(), any())
         }
     }
 
@@ -581,7 +581,7 @@ class ExpenseServiceTest {
                     quantity = BigDecimal("2.000"),
                     unitPrice = BigDecimal("150.00"),
                     totalPrice = BigDecimal("300.00"),
-                    categoryId = itemCategoryId
+                    category = "Food"
                 )
             )
         )
@@ -597,8 +597,8 @@ class ExpenseServiceTest {
         } returns "Mleko"
 
         every {
-            categoryService.requireActiveCategory(
-                categoryId = itemCategoryId,
+            categoryService.findActiveCategoryByName(
+                name = "Food",
                 expectedType = CategoryType.ITEM
             )
         } returns itemCategory
@@ -635,8 +635,8 @@ class ExpenseServiceTest {
         assertNull(persistedItem.legacyCategory)
 
         verify(exactly = 1) {
-            categoryService.requireActiveCategory(
-                categoryId = itemCategoryId,
+            categoryService.findActiveCategoryByName(
+                name = "Food",
                 expectedType = CategoryType.ITEM
             )
         }
@@ -811,7 +811,7 @@ class ExpenseServiceTest {
             merchant = "Taxi",
             amount = BigDecimal("900.00"),
             currency = "RSD",
-            categoryId = categoryId,
+            category = "Transport",
             purchaseDate = LocalDateTime.of(
                 2026,
                 7,
@@ -829,8 +829,8 @@ class ExpenseServiceTest {
         } returns existingExpense
 
         every {
-            categoryService.requireActiveCategory(
-                categoryId = categoryId,
+            categoryService.findActiveCategoryByName(
+                name = "Transport",
                 expectedType = CategoryType.EXPENSE
             )
         } returns category
@@ -853,8 +853,8 @@ class ExpenseServiceTest {
         assertSame(category, existingExpense.category)
 
         verify(exactly = 1) {
-            categoryService.requireActiveCategory(
-                categoryId = categoryId,
+            categoryService.findActiveCategoryByName(
+                name = "Transport",
                 expectedType = CategoryType.EXPENSE
             )
         }
@@ -1060,7 +1060,7 @@ class ExpenseServiceTest {
                     quantity = BigDecimal("1.000"),
                     unitPrice = BigDecimal("180.00"),
                     totalPrice = BigDecimal("180.00"),
-                    categoryId = itemCategoryId
+                    category = "Drinks"
                 )
             )
         )
@@ -1081,8 +1081,8 @@ class ExpenseServiceTest {
         } returns "Sok"
 
         every {
-            categoryService.requireActiveCategory(
-                categoryId = itemCategoryId,
+            categoryService.findActiveCategoryByName(
+                name = "Drinks",
                 expectedType = CategoryType.ITEM
             )
         } returns itemCategory
@@ -1110,8 +1110,8 @@ class ExpenseServiceTest {
         }
 
         verify(exactly = 1) {
-            categoryService.requireActiveCategory(
-                categoryId = itemCategoryId,
+            categoryService.findActiveCategoryByName(
+                name = "Drinks",
                 expectedType = CategoryType.ITEM
             )
         }

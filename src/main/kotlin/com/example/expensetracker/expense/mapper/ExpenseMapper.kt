@@ -20,6 +20,7 @@ object ExpenseMapper {
             qrUrl = entity.qrUrl,
             createdAt = entity.createdAt,
             receiptImage = entity.receiptImage,
+            notes = entity.notes,
             items = entity.items.map { item ->
                 ReceiptItemResponse(
                     id = item.id,
