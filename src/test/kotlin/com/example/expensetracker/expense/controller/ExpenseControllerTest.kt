@@ -30,10 +30,12 @@ import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
 import org.springframework.test.web.servlet.put
 import java.math.BigDecimal
+import java.security.Principal
 import java.time.LocalDateTime
 import java.util.UUID
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration
 import org.springframework.boot.validation.autoconfigure.ValidationAutoConfiguration
+import org.springframework.test.web.servlet.request.RequestPostProcessor
 
 @WebMvcTest(ExpenseController::class)
 @Import(GlobalExceptionHandler::class)
@@ -50,6 +52,15 @@ class ExpenseControllerTest {
     @MockitoBean
     private lateinit var expenseService: ExpenseService
 
+    private fun authenticatedUser(
+        userId: String = USER_ID
+    ): RequestPostProcessor {
+        return RequestPostProcessor { request ->
+            request.userPrincipal = Principal { userId }
+            request
+        }
+    }
+
     @Test
     fun `GET expenses returns all expenses`() {
         val firstExpense = expenseResponse(
@@ -62,10 +73,12 @@ class ExpenseControllerTest {
             amount = "250.00"
         )
 
-        whenever(expenseService.findAll())
+        whenever(expenseService.findAll(USER_ID))
             .thenReturn(listOf(firstExpense, secondExpense))
 
-        mockMvc.get("/api/expenses")
+        mockMvc.get("/api/expenses") {
+            with(authenticatedUser())
+        }
             .andExpect {
                 status { isOk() }
                 content {
@@ -98,15 +111,17 @@ class ExpenseControllerTest {
                 }
             }
 
-        verify(expenseService).findAll()
+        verify(expenseService).findAll(USER_ID)
     }
 
     @Test
     fun `GET expenses returns empty array when there are no expenses`() {
-        whenever(expenseService.findAll())
+        whenever(expenseService.findAll(USER_ID))
             .thenReturn(emptyList())
 
-        mockMvc.get("/api/expenses")
+        mockMvc.get("/api/expenses") {
+            with(authenticatedUser())
+        }
             .andExpect {
                 status { isOk() }
                 content {
@@ -115,7 +130,7 @@ class ExpenseControllerTest {
                 jsonPath("$", hasSize<Any>(0))
             }
 
-        verify(expenseService).findAll()
+        verify(expenseService).findAll(USER_ID)
     }
 
     @Test
@@ -128,10 +143,12 @@ class ExpenseControllerTest {
             amount = "780.00"
         )
 
-        whenever(expenseService.findById(expenseId))
+        whenever(expenseService.findById(expenseId, USER_ID))
             .thenReturn(expense)
 
-        mockMvc.get("/api/expenses/{id}", expenseId)
+        mockMvc.get("/api/expenses/{id}", expenseId) {
+            with(authenticatedUser())
+        }
             .andExpect {
                 status { isOk() }
                 content {
@@ -160,19 +177,21 @@ class ExpenseControllerTest {
                 }
             }
 
-        verify(expenseService).findById(expenseId)
+        verify(expenseService).findById(expenseId, USER_ID)
     }
 
     @Test
     fun `GET expense returns bad request when expense is not found`() {
         val expenseId = UUID.randomUUID()
 
-        whenever(expenseService.findById(expenseId))
+        whenever(expenseService.findById(expenseId, USER_ID))
             .thenThrow(
                 IllegalArgumentException("Expense not found")
             )
 
-        mockMvc.get("/api/expenses/{id}", expenseId)
+        mockMvc.get("/api/expenses/{id}", expenseId) {
+            with(authenticatedUser())
+        }
             .andExpect {
                 status { isBadRequest() }
                 jsonPath("$.message") {
@@ -180,12 +199,14 @@ class ExpenseControllerTest {
                 }
             }
 
-        verify(expenseService).findById(expenseId)
+        verify(expenseService).findById(expenseId, USER_ID)
     }
 
     @Test
     fun `GET expense with invalid UUID returns bad request`() {
-        mockMvc.get("/api/expenses/not-a-uuid")
+        mockMvc.get("/api/expenses/not-a-uuid") {
+            with(authenticatedUser())
+        }
             .andExpect {
                 status { isBadRequest() }
                 jsonPath("$.message") {
@@ -269,10 +290,11 @@ class ExpenseControllerTest {
             notes = null
         )
 
-        whenever(expenseService.create(request))
+        whenever(expenseService.create(request, USER_ID))
             .thenReturn(response)
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -328,7 +350,7 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService).create(request)
+        verify(expenseService).create(request, USER_ID)
     }
 
     @Test
@@ -346,10 +368,11 @@ class ExpenseControllerTest {
             receiptImage = null
         )
 
-        whenever(expenseService.create(request))
+        whenever(expenseService.create(request, USER_ID))
             .thenReturn(response)
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -369,7 +392,7 @@ class ExpenseControllerTest {
             jsonPath("$.items", hasSize<Any>(0))
         }
 
-        verify(expenseService).create(request)
+        verify(expenseService).create(request, USER_ID)
     }
 
     @Test
@@ -378,7 +401,7 @@ class ExpenseControllerTest {
             qrUrl = "duplicate-qr"
         )
 
-        whenever(expenseService.create(request))
+        whenever(expenseService.create(request, USER_ID))
             .thenThrow(
                 IllegalArgumentException(
                     "Expense with this QR receipt already exists"
@@ -386,6 +409,7 @@ class ExpenseControllerTest {
             )
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -395,12 +419,13 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService).create(request)
+        verify(expenseService).create(request, USER_ID)
     }
 
     @Test
     fun `POST expense with malformed JSON returns bad request`() {
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content =
                 """
@@ -418,7 +443,7 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService, never()).create(any())
+        verify(expenseService, never()).create(any(), any())
     }
 
     @Test
@@ -434,6 +459,7 @@ class ExpenseControllerTest {
             """.trimIndent()
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = jsonWithoutMerchant
         }.andExpect {
@@ -443,12 +469,13 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService, never()).create(any())
+        verify(expenseService, never()).create(any(), any())
     }
 
     @Test
     fun `POST expense without application JSON content type returns unsupported media type`() {
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.TEXT_PLAIN
             content = objectMapper.writeValueAsString(
                 expenseRequest()
@@ -467,6 +494,7 @@ class ExpenseControllerTest {
         )
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -476,7 +504,7 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService, never()).create(any())
+        verify(expenseService, never()).create(any(), any())
     }
 
     @Test
@@ -486,6 +514,7 @@ class ExpenseControllerTest {
         )
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -495,7 +524,7 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService, never()).create(any())
+        verify(expenseService, never()).create(any(), any())
     }
 
     @Test
@@ -505,6 +534,7 @@ class ExpenseControllerTest {
         )
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -514,7 +544,7 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService, never()).create(any())
+        verify(expenseService, never()).create(any(), any())
     }
 
     @Test
@@ -528,10 +558,11 @@ class ExpenseControllerTest {
             amount = "0.00"
         )
 
-        whenever(expenseService.create(request))
+        whenever(expenseService.create(request, USER_ID))
             .thenReturn(response)
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -541,7 +572,7 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService).create(request)
+        verify(expenseService).create(request, USER_ID)
     }
 
     @Test
@@ -551,6 +582,7 @@ class ExpenseControllerTest {
         )
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -560,7 +592,7 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService, never()).create(any())
+        verify(expenseService, never()).create(any(), any())
     }
 
     @Test
@@ -570,6 +602,7 @@ class ExpenseControllerTest {
         )
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -579,7 +612,7 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService, never()).create(any())
+        verify(expenseService, never()).create(any(), any())
     }
 
     @Test
@@ -589,6 +622,7 @@ class ExpenseControllerTest {
         )
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -598,7 +632,7 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService, never()).create(any())
+        verify(expenseService, never()).create(any(), any())
     }
 
     @Test
@@ -615,6 +649,7 @@ class ExpenseControllerTest {
         )
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -624,7 +659,7 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService, never()).create(any())
+        verify(expenseService, never()).create(any(), any())
     }
 
     @Test
@@ -641,6 +676,7 @@ class ExpenseControllerTest {
         )
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -650,7 +686,7 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService, never()).create(any())
+        verify(expenseService, never()).create(any(), any())
     }
 
     @Test
@@ -667,6 +703,7 @@ class ExpenseControllerTest {
         )
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -676,7 +713,7 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService, never()).create(any())
+        verify(expenseService, never()).create(any(), any())
     }
 
     @Test
@@ -693,6 +730,7 @@ class ExpenseControllerTest {
         )
 
         mockMvc.post("/api/expenses") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -702,7 +740,7 @@ class ExpenseControllerTest {
             }
         }
 
-        verify(expenseService, never()).create(any())
+        verify(expenseService, never()).create(any(), any())
     }
 
     @Test
@@ -729,11 +767,13 @@ class ExpenseControllerTest {
         whenever(
             expenseService.update(
                 eq(expenseId),
-                eq(request)
+                eq(request),
+                eq(USER_ID)
             )
         ).thenReturn(response)
 
         mockMvc.put("/api/expenses/{id}", expenseId) {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -763,7 +803,8 @@ class ExpenseControllerTest {
 
         verify(expenseService).update(
             expenseId,
-            request
+            request,
+            USER_ID
         )
     }
 
@@ -775,13 +816,15 @@ class ExpenseControllerTest {
         whenever(
             expenseService.update(
                 eq(expenseId),
-                eq(request)
+                eq(request),
+                eq(USER_ID)
             )
         ).thenThrow(
             IllegalArgumentException("Expense not found")
         )
 
         mockMvc.put("/api/expenses/{id}", expenseId) {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -793,7 +836,8 @@ class ExpenseControllerTest {
 
         verify(expenseService).update(
             expenseId,
-            request
+            request,
+            USER_ID
         )
     }
 
@@ -806,6 +850,7 @@ class ExpenseControllerTest {
         )
 
         mockMvc.put("/api/expenses/{id}", expenseId) {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(request)
         }.andExpect {
@@ -818,12 +863,13 @@ class ExpenseControllerTest {
         verify(
             expenseService,
             never()
-        ).update(any(), any())
+        ).update(any(), any(), any())
     }
 
     @Test
     fun `PUT expense with invalid UUID returns bad request`() {
         mockMvc.put("/api/expenses/not-a-uuid") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = objectMapper.writeValueAsString(
                 expenseRequest()
@@ -843,6 +889,7 @@ class ExpenseControllerTest {
         val expenseId = UUID.randomUUID()
 
         mockMvc.put("/api/expenses/{id}", expenseId) {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content =
                 """
@@ -861,14 +908,38 @@ class ExpenseControllerTest {
         verify(
             expenseService,
             never()
-        ).update(any(), any())
+        ).update(any(), any(), any())
+    }
+
+    @Test
+    fun `GET expense by id scopes lookup to the authenticated caller`() {
+        val expenseId = UUID.randomUUID()
+        val otherUserId = "a-different-user"
+
+        whenever(
+            expenseService.findById(expenseId, otherUserId)
+        ).thenThrow(
+            IllegalArgumentException("Expense not found")
+        )
+
+        mockMvc.get("/api/expenses/{id}", expenseId) {
+            with(authenticatedUser(otherUserId))
+        }
+            .andExpect {
+                status { isBadRequest() }
+            }
+
+        verify(expenseService).findById(expenseId, otherUserId)
+        verify(expenseService, never()).findById(expenseId, USER_ID)
     }
 
     @Test
     fun `DELETE expense deletes expense`() {
         val expenseId = UUID.randomUUID()
 
-        mockMvc.delete("/api/expenses/{id}", expenseId)
+        mockMvc.delete("/api/expenses/{id}", expenseId) {
+            with(authenticatedUser())
+        }
             .andExpect {
                 status { isNoContent() }
                 content {
@@ -876,19 +947,21 @@ class ExpenseControllerTest {
                 }
             }
 
-        verify(expenseService).delete(expenseId)
+        verify(expenseService).delete(expenseId, USER_ID)
     }
 
     @Test
     fun `DELETE expense returns bad request when expense is not found`() {
         val expenseId = UUID.randomUUID()
 
-        whenever(expenseService.delete(expenseId))
+        whenever(expenseService.delete(expenseId, USER_ID))
             .thenThrow(
                 IllegalArgumentException("Expense not found")
             )
 
-        mockMvc.delete("/api/expenses/{id}", expenseId)
+        mockMvc.delete("/api/expenses/{id}", expenseId) {
+            with(authenticatedUser())
+        }
             .andExpect {
                 status { isBadRequest() }
                 jsonPath("$.message") {
@@ -896,12 +969,14 @@ class ExpenseControllerTest {
                 }
             }
 
-        verify(expenseService).delete(expenseId)
+        verify(expenseService).delete(expenseId, USER_ID)
     }
 
     @Test
     fun `DELETE expense with invalid UUID returns bad request`() {
-        mockMvc.delete("/api/expenses/not-a-uuid")
+        mockMvc.delete("/api/expenses/not-a-uuid") {
+            with(authenticatedUser())
+        }
             .andExpect {
                 status { isBadRequest() }
                 jsonPath("$.message") {
@@ -980,5 +1055,10 @@ class ExpenseControllerTest {
             qrUrl = qrUrl,
             notes = notes
         )
+    }
+
+    companion object {
+        private const val USER_ID =
+            "c27ed142-ec88-4b4c-b21c-eebdf55ab0f1"
     }
 }

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.security.Principal
 
 @RestController
 @RequestMapping("/api/budgets")
@@ -24,11 +25,13 @@ class BudgetController(
     @GetMapping("/{year}/{month}")
     fun findByMonth(
         @PathVariable year: Int,
-        @PathVariable month: Int
+        @PathVariable month: Int,
+        principal: Principal
     ): ResponseEntity<BudgetResponse> {
         val budget = budgetService.findByMonth(
             year = year,
-            month = month
+            month = month,
+            userId = principal.name
         )
 
         return if (budget != null) {
@@ -41,12 +44,14 @@ class BudgetController(
     @GetMapping("/{year}/{month}/summary")
     fun getSummary(
         @PathVariable year: Int,
-        @PathVariable month: Int
+        @PathVariable month: Int,
+        principal: Principal
     ): ResponseEntity<BudgetSummaryResponse> {
         return ResponseEntity.ok(
             budgetService.getSummary(
                 year = year,
-                month = month
+                month = month,
+                userId = principal.name
             )
         )
     }
@@ -54,9 +59,13 @@ class BudgetController(
     @PutMapping
     fun createOrUpdate(
         @Valid
-        @RequestBody request: BudgetRequest
+        @RequestBody request: BudgetRequest,
+        principal: Principal
     ): ResponseEntity<BudgetResponse> {
-        val result = budgetService.createOrUpdate(request)
+        val result = budgetService.createOrUpdate(
+            request = request,
+            userId = principal.name
+        )
 
         return if (result.created) {
             ResponseEntity
@@ -70,11 +79,13 @@ class BudgetController(
     @DeleteMapping("/{year}/{month}")
     fun delete(
         @PathVariable year: Int,
-        @PathVariable month: Int
+        @PathVariable month: Int,
+        principal: Principal
     ): ResponseEntity<Void> {
         budgetService.delete(
             year = year,
-            month = month
+            month = month,
+            userId = principal.name
         )
 
         return ResponseEntity.noContent().build()

@@ -1,6 +1,7 @@
 package com.example.expensetracker.common
 
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.HttpMediaTypeNotSupportedException
 import org.springframework.web.bind.MethodArgumentNotValidException
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
+import org.springframework.web.server.ResponseStatusException
 
 data class ErrorResponse(
     val message: String
@@ -83,6 +85,19 @@ class GlobalExceptionHandler {
         return ErrorResponse(
             message = exception.message ?: "Resource not found"
         )
+    }
+
+    @ExceptionHandler(ResponseStatusException::class)
+    fun handleResponseStatusException(
+        exception: ResponseStatusException
+    ): ResponseEntity<ErrorResponse> {
+        return ResponseEntity
+            .status(exception.statusCode)
+            .body(
+                ErrorResponse(
+                    message = exception.reason ?: "Request failed"
+                )
+            )
     }
 
     @ExceptionHandler(Exception::class)

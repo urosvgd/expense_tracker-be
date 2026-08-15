@@ -68,7 +68,8 @@ class BudgetServiceTest {
 
             val result = service.findByMonth(
                 year = 2026,
-                month = 7
+                month = 7,
+                userId = TEMP_USER_ID
             )
 
             assertNull(result)
@@ -101,7 +102,8 @@ class BudgetServiceTest {
 
             val result = service.findByMonth(
                 year = 2026,
-                month = 7
+                month = 7,
+                userId = TEMP_USER_ID
             )
 
             requireNotNull(result)
@@ -119,7 +121,8 @@ class BudgetServiceTest {
             ) {
                 service.findByMonth(
                     year = 2026,
-                    month = 13
+                    month = 13,
+                    userId = TEMP_USER_ID
                 )
             }
 
@@ -138,13 +141,49 @@ class BudgetServiceTest {
         }
 
         @Test
+        fun `does not leak a budget owned by another user`() {
+            every {
+                budgetRepository.findByUserIdAndYearAndMonth(
+                    userId = "other-user",
+                    year = 2026,
+                    month = 7
+                )
+            } returns Optional.empty()
+
+            val result = service.findByMonth(
+                year = 2026,
+                month = 7,
+                userId = "other-user"
+            )
+
+            assertNull(result)
+
+            verify(exactly = 1) {
+                budgetRepository.findByUserIdAndYearAndMonth(
+                    userId = "other-user",
+                    year = 2026,
+                    month = 7
+                )
+            }
+
+            verify(exactly = 0) {
+                budgetRepository.findByUserIdAndYearAndMonth(
+                    userId = TEMP_USER_ID,
+                    year = 2026,
+                    month = 7
+                )
+            }
+        }
+
+        @Test
         fun `rejects year before 2000`() {
             val exception = assertThrows(
                 IllegalArgumentException::class.java
             ) {
                 service.findByMonth(
                     year = 1999,
-                    month = 7
+                    month = 7,
+                    userId = TEMP_USER_ID
                 )
             }
 
@@ -184,7 +223,7 @@ class BudgetServiceTest {
                 savedBudget.captured
             }
 
-            val result = service.createOrUpdate(request)
+            val result = service.createOrUpdate(request, TEMP_USER_ID)
 
             assertTrue(result.created)
 
@@ -230,7 +269,7 @@ class BudgetServiceTest {
                 firstArg<BudgetEntity>()
             }
 
-            val result = service.createOrUpdate(request)
+            val result = service.createOrUpdate(request, TEMP_USER_ID)
 
             assertTrue(result.created)
             assertNull(result.budget.totalLimit)
@@ -262,7 +301,7 @@ class BudgetServiceTest {
                 savedBudget.captured
             }
 
-            service.createOrUpdate(request)
+            service.createOrUpdate(request, TEMP_USER_ID)
 
             assertEquals(
                 "RSD",
@@ -317,7 +356,7 @@ class BudgetServiceTest {
                 savedBudget.captured
             }
 
-            val result = service.createOrUpdate(request)
+            val result = service.createOrUpdate(request, TEMP_USER_ID)
 
             assertTrue(result.created)
             assertNull(savedBudget.captured.totalLimit)
@@ -375,7 +414,7 @@ class BudgetServiceTest {
                 savedBudget.captured
             }
 
-            val result = service.createOrUpdate(request)
+            val result = service.createOrUpdate(request, TEMP_USER_ID)
 
             assertFalse(result.created)
             assertSame(existingBudget, savedBudget.captured)
@@ -452,7 +491,7 @@ class BudgetServiceTest {
                 firstArg<BudgetEntity>()
             }
 
-            service.createOrUpdate(request)
+            service.createOrUpdate(request, TEMP_USER_ID)
 
             assertEquals(1, existingBudget.categoryBudgets.size)
 
@@ -479,7 +518,7 @@ class BudgetServiceTest {
             val exception = assertThrows(
                 IllegalArgumentException::class.java
             ) {
-                service.createOrUpdate(request)
+                service.createOrUpdate(request, TEMP_USER_ID)
             }
 
             assertEquals(
@@ -510,7 +549,7 @@ class BudgetServiceTest {
             val exception = assertThrows(
                 IllegalArgumentException::class.java
             ) {
-                service.createOrUpdate(request)
+                service.createOrUpdate(request, TEMP_USER_ID)
             }
 
             assertEquals(
@@ -549,7 +588,7 @@ class BudgetServiceTest {
             val exception = assertThrows(
                 IllegalArgumentException::class.java
             ) {
-                service.createOrUpdate(request)
+                service.createOrUpdate(request, TEMP_USER_ID)
             }
 
             assertTrue(
@@ -582,7 +621,7 @@ class BudgetServiceTest {
             val exception = assertThrows(
                 IllegalArgumentException::class.java
             ) {
-                service.createOrUpdate(request)
+                service.createOrUpdate(request, TEMP_USER_ID)
             }
 
             assertTrue(
@@ -617,7 +656,8 @@ class BudgetServiceTest {
                 IllegalArgumentException::class.java
             ) {
                 service.createOrUpdate(
-                    categoryBudgetRequest(categoryId)
+                    categoryBudgetRequest(categoryId),
+                    TEMP_USER_ID
                 )
             }
 
@@ -650,7 +690,8 @@ class BudgetServiceTest {
                 IllegalArgumentException::class.java
             ) {
                 service.createOrUpdate(
-                    categoryBudgetRequest(categoryId)
+                    categoryBudgetRequest(categoryId),
+                    TEMP_USER_ID
                 )
             }
 
@@ -687,7 +728,8 @@ class BudgetServiceTest {
 
             service.delete(
                 year = 2026,
-                month = 7
+                month = 7,
+                userId = TEMP_USER_ID
             )
 
             verifyAll {
@@ -716,7 +758,8 @@ class BudgetServiceTest {
             ) {
                 service.delete(
                     year = 2026,
-                    month = 7
+                    month = 7,
+                    userId = TEMP_USER_ID
                 )
             }
 
@@ -842,7 +885,8 @@ class BudgetServiceTest {
 
             val summary = service.getSummary(
                 year = 2026,
-                month = 7
+                month = 7,
+                userId = TEMP_USER_ID
             )
 
             assertDecimalEquals(
@@ -937,7 +981,8 @@ class BudgetServiceTest {
 
             val summary = service.getSummary(
                 year = 2026,
-                month = 7
+                month = 7,
+                userId = TEMP_USER_ID
             )
 
             assertDecimalEquals(
@@ -984,7 +1029,8 @@ class BudgetServiceTest {
 
             val summary = service.getSummary(
                 year = 2026,
-                month = 7
+                month = 7,
+                userId = TEMP_USER_ID
             )
 
             assertNull(summary.totalLimit)
@@ -1029,7 +1075,8 @@ class BudgetServiceTest {
 
             val summary = service.getSummary(
                 year = 2026,
-                month = 7
+                month = 7,
+                userId = TEMP_USER_ID
             )
 
             assertDecimalEquals(
@@ -1058,7 +1105,8 @@ class BudgetServiceTest {
             ) {
                 service.getSummary(
                     year = 2026,
-                    month = 7
+                    month = 7,
+                    userId = TEMP_USER_ID
                 )
             }
 

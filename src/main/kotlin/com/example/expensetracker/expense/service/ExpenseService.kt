@@ -19,27 +19,27 @@ class ExpenseService(
     private val itemCategoryDetector: ItemCategoryDetector,
     private val categoryService: CategoryService
 ) {
-    private val tempUserId = "TEMP_USER"
 
     @Transactional(readOnly = true)
-    fun findAll(): List<ExpenseResponse> {
+    fun findAll(userId: String): List<ExpenseResponse> {
         return repository
-            .findAllByUserIdOrderByPurchaseDateDesc(tempUserId)
+            .findAllByUserIdOrderByPurchaseDateDesc(userId)
             .map(ExpenseMapper::toResponse)
     }
 
     @Transactional(readOnly = true)
-    fun findById(id: UUID): ExpenseResponse {
+    fun findById(id: UUID, userId: String): ExpenseResponse {
         return ExpenseMapper.toResponse(
-            findEntityById(id)
+            findEntityById(id, userId)
         )
     }
 
     @Transactional
-    fun create(request: ExpenseRequest): ExpenseResponse {
+    fun create(request: ExpenseRequest, userId: String): ExpenseResponse {
         validateQrCode(
             qrUrl = request.qrUrl,
-            currentExpense = null
+            currentExpense = null,
+            userId = userId
         )
 
         val expenseCategory = resolveExpenseCategory(
@@ -47,7 +47,7 @@ class ExpenseService(
         )
 
         val entity = ExpenseEntity(
-            userId = tempUserId,
+            userId = userId,
             merchant = request.merchant,
             amount = request.amount,
             currency = request.currency,
@@ -91,13 +91,15 @@ class ExpenseService(
     @Transactional
     fun update(
         id: UUID,
-        request: ExpenseRequest
+        request: ExpenseRequest,
+        userId: String
     ): ExpenseResponse {
-        val expense = findEntityById(id)
+        val expense = findEntityById(id, userId)
 
         validateQrCode(
             qrUrl = request.qrUrl,
-            currentExpense = expense
+            currentExpense = expense,
+            userId = userId
         )
 
         val expenseCategory = resolveExpenseCategory(
@@ -144,16 +146,16 @@ class ExpenseService(
     }
 
     @Transactional
-    fun delete(id: UUID) {
-        val expense = findEntityById(id)
+    fun delete(id: UUID, userId: String) {
+        val expense = findEntityById(id, userId)
 
         repository.delete(expense)
     }
 
-    private fun findEntityById(id: UUID): ExpenseEntity {
+    private fun findEntityById(id: UUID, userId: String): ExpenseEntity {
         return repository.findByIdAndUserId(
             id = id,
-            userId = tempUserId
+            userId = userId
         ) ?: throw IllegalArgumentException(
             "Expense not found"
         )
@@ -161,7 +163,8 @@ class ExpenseService(
 
     private fun validateQrCode(
         qrUrl: String?,
-        currentExpense: ExpenseEntity?
+        currentExpense: ExpenseEntity?,
+        userId: String
     ) {
         if (qrUrl.isNullOrBlank()) return
 
@@ -171,7 +174,7 @@ class ExpenseService(
         if (
             qrChanged &&
             repository.existsByUserIdAndQrUrl(
-                tempUserId,
+                userId,
                 qrUrl
             )
         ) {

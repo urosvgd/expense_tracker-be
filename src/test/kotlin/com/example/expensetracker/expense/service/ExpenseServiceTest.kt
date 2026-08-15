@@ -78,7 +78,7 @@ class ExpenseServiceTest {
             firstArg()
         }
 
-        val result = expenseService.create(request)
+        val result = expenseService.create(request, "TEMP_USER")
 
         assertEquals("TEMP_USER", result.userId)
         assertEquals("Maxi Novi Sad", result.merchant)
@@ -153,7 +153,7 @@ class ExpenseServiceTest {
             firstArg()
         }
 
-        val result = expenseService.create(request)
+        val result = expenseService.create(request, "TEMP_USER")
 
         assertEquals(categoryId, result.category?.id)
         assertEquals("GROCERIES", result.category?.code)
@@ -204,7 +204,7 @@ class ExpenseServiceTest {
         val exception = assertThrows(
             IllegalArgumentException::class.java
         ) {
-            expenseService.create(request)
+            expenseService.create(request, "TEMP_USER")
         }
 
         assertEquals(
@@ -288,7 +288,7 @@ class ExpenseServiceTest {
             firstArg()
         }
 
-        val result = expenseService.create(request)
+        val result = expenseService.create(request, "TEMP_USER")
 
         assertEquals(1, result.items.size)
         assertEquals("Mleko", result.items.single().name)
@@ -380,7 +380,7 @@ class ExpenseServiceTest {
             firstArg()
         }
 
-        val result = expenseService.create(request)
+        val result = expenseService.create(request, "TEMP_USER")
 
         assertEquals("OTHER", result.items.single().category?.code)
         assertEquals(otherCategory.id, result.items.single().category?.id)
@@ -448,7 +448,7 @@ class ExpenseServiceTest {
             firstArg()
         }
 
-        val result = expenseService.create(request)
+        val result = expenseService.create(request, "TEMP_USER")
 
         assertEquals(1, result.items.size)
         assertNull(result.items.single().category)
@@ -496,7 +496,7 @@ class ExpenseServiceTest {
             firstArg()
         }
 
-        val result = expenseService.create(request)
+        val result = expenseService.create(request, "TEMP_USER")
 
         assertEquals(qrUrl, result.qrUrl)
 
@@ -538,7 +538,7 @@ class ExpenseServiceTest {
             firstArg()
         }
 
-        val result = expenseService.create(request)
+        val result = expenseService.create(request, "TEMP_USER")
 
         assertEquals("   ", result.qrUrl)
 
@@ -615,7 +615,7 @@ class ExpenseServiceTest {
             savedExpense.captured
         }
 
-        val result = expenseService.create(request)
+        val result = expenseService.create(request, "TEMP_USER")
 
         assertEquals(1, result.items.size)
 
@@ -759,7 +759,8 @@ class ExpenseServiceTest {
 
         val result = expenseService.update(
             id = expenseId,
-            request = request
+            request = request,
+            userId = "TEMP_USER"
         )
 
         assertEquals(expenseId, result.id)
@@ -845,7 +846,8 @@ class ExpenseServiceTest {
 
         val result = expenseService.update(
             id = expenseId,
-            request = request
+            request = request,
+            userId = "TEMP_USER"
         )
 
         assertEquals(categoryId, result.category?.id)
@@ -905,7 +907,8 @@ class ExpenseServiceTest {
 
         val result = expenseService.update(
             id = expenseId,
-            request = request
+            request = request,
+            userId = "TEMP_USER"
         )
 
         assertEquals(qrUrl, result.qrUrl)
@@ -963,7 +966,8 @@ class ExpenseServiceTest {
         ) {
             expenseService.update(
                 id = expenseId,
-                request = request
+                request = request,
+                userId = "TEMP_USER"
             )
         }
 
@@ -1009,7 +1013,8 @@ class ExpenseServiceTest {
         ) {
             expenseService.update(
                 id = expenseId,
-                request = request
+                request = request,
+                userId = "TEMP_USER"
             )
         }
 
@@ -1097,7 +1102,8 @@ class ExpenseServiceTest {
 
         val result = expenseService.update(
             id = expenseId,
-            request = request
+            request = request,
+            userId = "TEMP_USER"
         )
 
         assertEquals(
@@ -1149,7 +1155,7 @@ class ExpenseServiceTest {
             )
         } returns listOf(firstExpense, secondExpense)
 
-        val result = expenseService.findAll()
+        val result = expenseService.findAll("TEMP_USER")
 
         assertEquals(2, result.size)
 
@@ -1182,7 +1188,7 @@ class ExpenseServiceTest {
             )
         } returns emptyList()
 
-        val result = expenseService.findAll()
+        val result = expenseService.findAll("TEMP_USER")
 
         assertTrue(result.isEmpty())
 
@@ -1210,7 +1216,7 @@ class ExpenseServiceTest {
             )
         } returns expense
 
-        val result = expenseService.findById(expenseId)
+        val result = expenseService.findById(expenseId, "TEMP_USER")
 
         assertEquals(expenseId, result.id)
         assertEquals("TEMP_USER", result.userId)
@@ -1240,7 +1246,7 @@ class ExpenseServiceTest {
         val exception = assertThrows(
             IllegalArgumentException::class.java
         ) {
-            expenseService.findById(expenseId)
+            expenseService.findById(expenseId, "TEMP_USER")
         }
 
         assertEquals(
@@ -1277,7 +1283,7 @@ class ExpenseServiceTest {
             repository.delete(expense)
         } just Runs
 
-        expenseService.delete(expenseId)
+        expenseService.delete(expenseId, "TEMP_USER")
 
         verify(exactly = 1) {
             repository.findByIdAndUserId(
@@ -1305,7 +1311,7 @@ class ExpenseServiceTest {
         val exception = assertThrows(
             IllegalArgumentException::class.java
         ) {
-            expenseService.delete(expenseId)
+            expenseService.delete(expenseId, "TEMP_USER")
         }
 
         assertEquals(
@@ -1318,6 +1324,51 @@ class ExpenseServiceTest {
                 id = expenseId,
                 userId = "TEMP_USER"
             )
+        }
+
+        verify(exactly = 0) {
+            repository.delete(any())
+        }
+    }
+
+    @Test
+    fun `findById does not leak an expense owned by another user`() {
+        val expenseId = UUID.randomUUID()
+
+        every {
+            repository.findByIdAndUserId(
+                id = expenseId,
+                userId = "other-user"
+            )
+        } returns null
+
+        val exception = assertThrows(
+            IllegalArgumentException::class.java
+        ) {
+            expenseService.findById(expenseId, "other-user")
+        }
+
+        assertEquals(
+            "Expense not found",
+            exception.message
+        )
+    }
+
+    @Test
+    fun `delete does not remove an expense owned by another user`() {
+        val expenseId = UUID.randomUUID()
+
+        every {
+            repository.findByIdAndUserId(
+                id = expenseId,
+                userId = "other-user"
+            )
+        } returns null
+
+        assertThrows(
+            IllegalArgumentException::class.java
+        ) {
+            expenseService.delete(expenseId, "other-user")
         }
 
         verify(exactly = 0) {

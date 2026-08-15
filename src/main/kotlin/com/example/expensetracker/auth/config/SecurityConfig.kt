@@ -1,9 +1,11 @@
 package com.example.expensetracker.auth.config
 
+import com.example.expensetracker.auth.security.AuthRateLimitFilter
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.security.config.Customizer
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
@@ -23,6 +25,8 @@ import javax.crypto.spec.SecretKeySpec
 class SecurityConfig(
     private val authProperties: AuthProperties
 ) {
+
+    private val authRateLimitFilter = AuthRateLimitFilter()
 
     @Bean
     fun passwordEncoder(): PasswordEncoder {
@@ -87,21 +91,15 @@ class SecurityConfig(
 
                 it.requestMatchers("/error", "/privacy").permitAll()
 
-                /*
-                 * Privremeno ostavljamo postojeće API-je javnim dok
-                 * ExpenseService i BudgetService još koriste TEMP_USER.
-                 */
-                it.requestMatchers(
-                    "/api/expenses/**",
-                    "/api/budgets/**",
-                    "/api/categories/**"
-                ).permitAll()
-
                 it.anyRequest().authenticated()
             }
             .oauth2ResourceServer {
                 it.jwt(Customizer.withDefaults())
             }
+            .addFilterBefore(
+                authRateLimitFilter,
+                UsernamePasswordAuthenticationFilter::class.java
+            )
             .build()
     }
 }

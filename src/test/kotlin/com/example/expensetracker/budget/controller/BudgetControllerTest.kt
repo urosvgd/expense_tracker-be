@@ -19,9 +19,11 @@ import org.springframework.test.web.servlet.delete
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.put
 import java.math.BigDecimal
+import java.security.Principal
 import java.time.LocalDateTime
 import java.util.UUID
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.test.web.servlet.request.RequestPostProcessor
 
 @WebMvcTest(BudgetController::class)
 class BudgetControllerTest {
@@ -32,6 +34,15 @@ class BudgetControllerTest {
     @MockitoBean
     private lateinit var budgetService: BudgetService
 
+    private fun authenticatedUser(
+        userId: String = USER_ID
+    ): RequestPostProcessor {
+        return RequestPostProcessor { request ->
+            request.userPrincipal = Principal { userId }
+            request
+        }
+    }
+
     @Test
     fun `GET budget returns 200 with budget when it exists`() {
         val budget = budgetResponse()
@@ -39,11 +50,14 @@ class BudgetControllerTest {
         `when`(
             budgetService.findByMonth(
                 year = 2026,
-                month = 7
+                month = 7,
+                userId = USER_ID
             )
         ).thenReturn(budget)
 
-        mockMvc.get("/api/budgets/2026/7")
+        mockMvc.get("/api/budgets/2026/7") {
+            with(authenticatedUser())
+        }
             .andExpect {
                 status { isOk() }
 
@@ -78,7 +92,8 @@ class BudgetControllerTest {
 
         verify(budgetService).findByMonth(
             year = 2026,
-            month = 7
+            month = 7,
+            userId = USER_ID
         )
     }
 
@@ -87,11 +102,14 @@ class BudgetControllerTest {
         `when`(
             budgetService.findByMonth(
                 year = 2026,
-                month = 7
+                month = 7,
+                userId = USER_ID
             )
         ).thenReturn(null)
 
-        mockMvc.get("/api/budgets/2026/7")
+        mockMvc.get("/api/budgets/2026/7") {
+            with(authenticatedUser())
+        }
             .andExpect {
                 status { isNotFound() }
                 content { string("") }
@@ -99,7 +117,34 @@ class BudgetControllerTest {
 
         verify(budgetService).findByMonth(
             year = 2026,
-            month = 7
+            month = 7,
+            userId = USER_ID
+        )
+    }
+
+    @Test
+    fun `GET budget scopes lookup to the authenticated caller`() {
+        val otherUserId = "a-different-user"
+
+        `when`(
+            budgetService.findByMonth(
+                year = 2026,
+                month = 7,
+                userId = otherUserId
+            )
+        ).thenReturn(null)
+
+        mockMvc.get("/api/budgets/2026/7") {
+            with(authenticatedUser(otherUserId))
+        }
+            .andExpect {
+                status { isNotFound() }
+            }
+
+        verify(budgetService).findByMonth(
+            year = 2026,
+            month = 7,
+            userId = otherUserId
         )
     }
 
@@ -119,11 +164,14 @@ class BudgetControllerTest {
         `when`(
             budgetService.getSummary(
                 year = 2026,
-                month = 7
+                month = 7,
+                userId = USER_ID
             )
         ).thenReturn(summary)
 
-        mockMvc.get("/api/budgets/2026/7/summary")
+        mockMvc.get("/api/budgets/2026/7/summary") {
+            with(authenticatedUser())
+        }
             .andExpect {
                 status { isOk() }
 
@@ -166,7 +214,8 @@ class BudgetControllerTest {
 
         verify(budgetService).getSummary(
             year = 2026,
-            month = 7
+            month = 7,
+            userId = USER_ID
         )
     }
 
@@ -176,6 +225,7 @@ class BudgetControllerTest {
 
         `when`(
             budgetService.createOrUpdate(
+                any(),
                 any()
             )
         ).thenReturn(
@@ -196,6 +246,7 @@ class BudgetControllerTest {
         """.trimIndent()
 
         mockMvc.put("/api/budgets") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = requestBody
         }.andExpect {
@@ -229,6 +280,7 @@ class BudgetControllerTest {
         }
 
         verify(budgetService).createOrUpdate(
+            any(),
             any()
         )
     }
@@ -241,6 +293,7 @@ class BudgetControllerTest {
 
         `when`(
             budgetService.createOrUpdate(
+                any(),
                 any()
             )
         ).thenReturn(
@@ -261,6 +314,7 @@ class BudgetControllerTest {
         """.trimIndent()
 
         mockMvc.put("/api/budgets") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = requestBody
         }.andExpect {
@@ -276,6 +330,7 @@ class BudgetControllerTest {
         }
 
         verify(budgetService).createOrUpdate(
+            any(),
             any()
         )
     }
@@ -293,6 +348,7 @@ class BudgetControllerTest {
         """.trimIndent()
 
         mockMvc.put("/api/budgets") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = requestBody
         }.andExpect {
@@ -315,6 +371,7 @@ class BudgetControllerTest {
         """.trimIndent()
 
         mockMvc.put("/api/budgets") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = requestBody
         }.andExpect {
@@ -337,6 +394,7 @@ class BudgetControllerTest {
         """.trimIndent()
 
         mockMvc.put("/api/budgets") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = requestBody
         }.andExpect {
@@ -359,6 +417,7 @@ class BudgetControllerTest {
         """.trimIndent()
 
         mockMvc.put("/api/budgets") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = requestBody
         }.andExpect {
@@ -381,6 +440,7 @@ class BudgetControllerTest {
         """.trimIndent()
 
         mockMvc.put("/api/budgets") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = requestBody
         }.andExpect {
@@ -398,6 +458,7 @@ class BudgetControllerTest {
 
         `when`(
             budgetService.createOrUpdate(
+                any(),
                 any()
             )
         ).thenReturn(
@@ -418,6 +479,7 @@ class BudgetControllerTest {
         """.trimIndent()
 
         mockMvc.put("/api/budgets") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = requestBody
         }.andExpect {
@@ -429,6 +491,7 @@ class BudgetControllerTest {
         }
 
         verify(budgetService).createOrUpdate(
+            any(),
             any()
         )
     }
@@ -444,6 +507,7 @@ class BudgetControllerTest {
         """.trimIndent()
 
         mockMvc.put("/api/budgets") {
+            with(authenticatedUser())
             contentType = MediaType.APPLICATION_JSON
             content = malformedJson
         }.andExpect {
@@ -455,7 +519,9 @@ class BudgetControllerTest {
 
     @Test
     fun `DELETE budget returns 204`() {
-        mockMvc.delete("/api/budgets/2026/7")
+        mockMvc.delete("/api/budgets/2026/7") {
+            with(authenticatedUser())
+        }
             .andExpect {
                 status { isNoContent() }
                 content { string("") }
@@ -463,7 +529,8 @@ class BudgetControllerTest {
 
         verify(budgetService).delete(
             year = 2026,
-            month = 7
+            month = 7,
+            userId = USER_ID
         )
     }
 
@@ -488,5 +555,10 @@ class BudgetControllerTest {
             createdAt = timestamp,
             updatedAt = timestamp
         )
+    }
+
+    companion object {
+        private const val USER_ID =
+            "c27ed142-ec88-4b4c-b21c-eebdf55ab0f1"
     }
 }

@@ -28,18 +28,17 @@ class BudgetService(
     private val expenseRepository: ExpenseRepository
 ) {
 
-    private val tempUserId = "TEMP_USER"
-
     @Transactional(readOnly = true)
     fun findByMonth(
         year: Int,
-        month: Int
+        month: Int,
+        userId: String
     ): BudgetResponse? {
         validateYearAndMonth(year, month)
 
         return budgetRepository
             .findByUserIdAndYearAndMonth(
-                userId = tempUserId,
+                userId = userId,
                 year = year,
                 month = month
             )
@@ -49,7 +48,8 @@ class BudgetService(
 
     @Transactional
     fun createOrUpdate(
-        request: BudgetRequest
+        request: BudgetRequest,
+        userId: String
     ): BudgetUpsertResult {
         validateRequest(request)
 
@@ -57,7 +57,7 @@ class BudgetService(
 
         val existingBudget = budgetRepository
             .findByUserIdAndYearAndMonth(
-                userId = tempUserId,
+                userId = userId,
                 year = request.year,
                 month = request.month
             )
@@ -66,7 +66,7 @@ class BudgetService(
         val created = existingBudget == null
 
         val budget = existingBudget ?: BudgetEntity(
-            userId = tempUserId,
+            userId = userId,
             year = request.year,
             month = request.month,
             totalLimit = request.totalLimit,
@@ -95,13 +95,14 @@ class BudgetService(
     @Transactional
     fun delete(
         year: Int,
-        month: Int
+        month: Int,
+        userId: String
     ) {
         validateYearAndMonth(year, month)
 
         val budget = budgetRepository
             .findByUserIdAndYearAndMonth(
-                userId = tempUserId,
+                userId = userId,
                 year = year,
                 month = month
             )
@@ -117,13 +118,14 @@ class BudgetService(
     @Transactional(readOnly = true)
     fun getSummary(
         year: Int,
-        month: Int
+        month: Int,
+        userId: String
     ): BudgetSummaryResponse {
         validateYearAndMonth(year, month)
 
         val budget = budgetRepository
             .findByUserIdAndYearAndMonth(
-                userId = tempUserId,
+                userId = userId,
                 year = year,
                 month = month
             )
@@ -141,7 +143,7 @@ class BudgetService(
 
         val expenses = expenseRepository
             .findAllByUserIdAndPurchaseDateGreaterThanEqualAndPurchaseDateLessThan(
-                userId = tempUserId,
+                userId = userId,
                 startDate = startDate,
                 endDate = endDate
             )

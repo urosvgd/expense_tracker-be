@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import java.security.Principal
 import java.util.UUID
 
 @RestController
@@ -23,41 +24,59 @@ class ExpenseController(
 ) {
 
     @GetMapping
-    fun getAll(): List<ExpenseResponse> =
-        service.findAll()
+    fun getAll(
+        principal: Principal
+    ): List<ExpenseResponse> =
+        service.findAll(
+            userId = principal.name
+        )
 
     @GetMapping("/{id}")
     fun getOne(
-        @PathVariable id: UUID
+        @PathVariable id: UUID,
+        principal: Principal
     ): ExpenseResponse =
-        service.findById(id)
+        service.findById(
+            id = id,
+            userId = principal.name
+        )
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun create(
         @RequestBody
         @Valid
-        request: ExpenseRequest
+        request: ExpenseRequest,
+        principal: Principal
     ): ExpenseResponse =
-        service.create(request)
+        service.create(
+            request = request,
+            userId = principal.name
+        )
 
     @PutMapping("/{id}")
     fun update(
         @PathVariable id: UUID,
         @RequestBody
         @Valid
-        request: ExpenseRequest
+        request: ExpenseRequest,
+        principal: Principal
     ): ExpenseResponse =
         service.update(
             id = id,
-            request = request
+            request = request,
+            userId = principal.name
         )
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun delete(
-        @PathVariable id: UUID
+        @PathVariable id: UUID,
+        principal: Principal
     ) {
-        service.delete(id)
+        service.delete(
+            id = id,
+            userId = principal.name
+        )
     }
 }
